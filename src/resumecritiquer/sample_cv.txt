@@ -1,0 +1,73 @@
+# KAVINDU PERERA
+**Junior Software Developer**
+
+Email: kavindu.perera@example.com  
+Phone: +94 77 123 4567  
+Location: Colombo, Sri Lanka  
+LinkedIn: linkedin.com/in/kavinduperera  
+GitHub: github.com/kavinduperera
+
+## PROFESSIONAL SUMMARY
+
+I am a hardworking and motivated university student who likes programming and computers. I know several programming languages and enjoy working on projects. I am looking for a job where I can improve my skills and gain experience.
+
+## EDUCATION
+
+**BSc in Information Technology**  
+University of Moratuwa, Sri Lanka  
+2023 – Present
+
+Relevant Coursework:
+- Programming Fundamentals
+- Database Management Systems
+- Web Technologies
+- Data Structures and Algorithms
+
+## TECHNICAL SKILLS
+
+- Programming: Python, Java, C, JavaScript
+- Web Development: HTML, CSS, React
+- Databases: MySQL
+- Tools: Git, GitHub, VS Code
+- Other: Teamwork, Communication, Problem Solving
+
+## PROJECTS
+
+**1. Student Management System | Python, MySQL**
+- Created a system to manage student information.
+- Added features to insert, update, and delete student records.
+- Used MySQL to store data.
+
+**2. Personal Portfolio Website | React, CSS**
+- Developed a personal website.
+- Added information about myself and my projects.
+- Made the website responsive.
+
+**3. AI Chatbot | Python, Gemini API**
+- Built a chatbot using Python.
+- Connected the application to Google's Gemini API.
+- Implemented basic conversation functionality.
+
+## WORK EXPERIENCE
+
+**IT Intern | ABC Technologies, Colombo**  
+June 2025 – September 2025
+- Helped with software development tasks.
+- Fixed bugs in applications.
+- Attended team meetings.
+- Worked with other developers.
+
+## CERTIFICATIONS
+
+- Python Programming Basics – Coursera (2024)
+- Introduction to Web Development – freeCodeCamp (2025)
+- Git and GitHub Fundamentals – Udemy (2025)
+
+## LANGUAGES
+
+- Sinhala – Native
+- English – Professional Working Proficiency
+
+## REFERENCES
+
+Available upon request.
