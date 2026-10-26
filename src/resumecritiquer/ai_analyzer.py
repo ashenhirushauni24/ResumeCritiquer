@@ -15,7 +15,7 @@ load_dotenv(project_root / ".env")
 
 
 def analyze_resume(resume_text, job_role=""):
-    """Analyze resume text using the Gemini API."""
+    """Analyze resume text using Gemini with model fallback."""
 
     api_key = os.getenv("GOOGLE_API_KEY")
 
@@ -24,40 +24,74 @@ def analyze_resume(resume_text, job_role=""):
             "Google API key not found. Check your .env file."
         )
 
-    client = genai.Client(api_key=api_key)
-
     target_role = job_role.strip() or "general job applications"
 
     prompt = f"""
-    Analyze the following resume for {target_role}.
+Analyze the following resume for the role: {target_role}.
 
-    Review these areas:
-    1. Content clarity and impact
-    2. Skills and relevant qualifications
-    3. Experience descriptions
-    4. Grammar and formatting suggestions
-    5. Specific, practical improvements
+Review these areas:
+1. Content clarity and impact
+2. Skills and relevant qualifications
+3. Experience descriptions
+4. Grammar and formatting suggestions
+5. Specific, practical improvements
 
-    Be constructive and explain how the candidate can improve.
-    Do not invent experience or qualifications.
+Be constructive and explain how the candidate can improve.
+Do not invent experience or qualifications.
 
-    Resume:
-    {resume_text}
-    """
+Resume:
+{resume_text}
+"""
 
-    response = client.models.generate_content(
-        model="gemini-3.8-flash",
-        contents=prompt,
-        config=types.GenerateContentConfig(
-            system_instruction=(
-                "You are an experienced resume reviewer. "
-                "Give honest, specific and constructive feedback."
-            ),
-            max_output_tokens=3000,
-        ),
-    )
+    client = genai.Client(api_key=api_key)
 
-    if not response.text:
-        raise ValueError("Gemini returned an empty response.")
+    models = [
+        "gemini-3.5-flash-lite",
+        "gemini-3.8-flash",
+    ]
 
-    return response.text
+    last_error = None
+
+    for model in models:
+        try:
+            response = client.models.generate_content(
+                model=model,
+                contents=prompt,
+                config=types.GenerateContentConfig(
+                    system_instruction=(
+                        "You are an experienced resume reviewer. "
+                        "Give honest, specific and constructive feedback."
+                    ),
+                    max_output_tokens=2000,
+                ),
+            )
+
+            if response.text and response.text.strip():
+                return response.text
+
+            raise ValueError(
+                f"{model} returned an empty response."
+            )
+
+        except Exception as e:
+            last_error = e
+            error_message = str(e)
+
+            is_server_unavailable = (
+                "503" in error_message
+                or "UNAVAILABLE" in error_message
+            )
+
+            # Only switch models for temporary service errors.
+            if is_server_unavailable:
+                continue
+
+            raise RuntimeError(
+                f"Gemini analysis failed: {type(e).__name__}: {e}"
+            ) from e
+
+    raise RuntimeError(
+        "Both Gemini models are currently unavailable. "
+        "Please wait a little and try again. "
+        f"Last error: {last_error}"
+    ) from last_error
