@@ -1,0 +1,20 @@
+[theme]
+baseRadius = "large"
+buttonRadius = "large"
+showWidgetBorder = true
+paddingTop = "large"
+paddingBottom = "large"
+
+[theme.light]
+primaryColor = "#3157D5"
+backgroundColor = "#F7F8FC"
+secondaryBackgroundColor = "#FFFFFF"
+textColor = "#1E293B"
+font = "sans serif"
+
+[theme.dark]
+primaryColor = "#8BA5FF"
+backgroundColor = "#111827"
+secondaryBackgroundColor = "#1F2937"
+textColor = "#F3F4F6"
+font = "sans serif"

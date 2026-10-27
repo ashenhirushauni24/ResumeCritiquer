@@ -9,6 +9,8 @@ from dotenv import load_dotenv
 
 from resumecritiquer.ai_analyzer import analyze_resume
 
+MAX_FILE_SIZE = 5*1024*1024 #5MB
+
 load_dotenv()
 
 st.set_page_config(
@@ -18,17 +20,70 @@ st.set_page_config(
 )
 
 
+def validate_uploaded_file(uploaded_file):
+    if uploaded_file is None:
+        return False, "Please upload a resume."
+
+    if uploaded_file.size == 0:
+        return False, "The uploaded file is empty."
+
+    if uploaded_file.size > MAX_FILE_SIZE:
+        return False, "File size must not exceed 5 MB."
+
+    filename = uploaded_file.name.lower()
+
+    if not filename.endswith((".pdf", ".txt")):
+        return False, "Only PDF and TXT files are supported."
+
+    return True, ""
+
+
 def extract_text_from_pdf(pdf_file: io.BytesIO) -> str:
     """Read selectable text from every page in an uploaded PDF."""
     pdf_reader = PyPDF2.PdfReader(pdf_file)
-    return "\n".join(page.extract_text() or "" for page in pdf_reader.pages)
+
+    if pdf_reader.is_encrypted:
+        raise ValueError("Password-protected PDFs are not supported.")
+
+    text = "\n".join(
+        page.extract_text() or ""
+        for page in pdf_reader.pages
+    )
+
+    if not text.strip():
+        raise ValueError(
+            "No readable text found. If this is a scanned PDF, "
+            "try a text-based copy."
+        )
+
+    return text
 
 
 def extract_text_from_file(uploaded_file) -> str:
-    """Extract text from the supported PDF or plain-text upload."""
-    if uploaded_file.name.lower().endswith(".pdf"):
-        return extract_text_from_pdf(io.BytesIO(uploaded_file.getvalue()))
-    return uploaded_file.getvalue().decode("utf-8")
+    """Extract text from PDF or UTF-8 TXT files."""
+    filename = uploaded_file.name.lower()
+    file_bytes = uploaded_file.getvalue()
+
+    if not file_bytes:
+        raise ValueError("The uploaded file is empty.")
+
+    if filename.endswith(".pdf"):
+        return extract_text_from_pdf(io.BytesIO(file_bytes))
+
+    if filename.endswith(".txt"):
+        try:
+            text = file_bytes.decode("utf-8")
+        except UnicodeDecodeError as exc:
+            raise ValueError(
+                "Save your text file using UTF-8 encoding."
+            ) from exc
+
+        if not text.strip():
+            raise ValueError("The text file contains no readable text.")
+
+        return text
+
+    raise ValueError("Only PDF and TXT files are supported.")
 
 
 
@@ -71,7 +126,6 @@ def score_card(title, score):
 
 
 
-# A small brand header keeps the page welcoming without taking space from the task.
 st.badge("AI-powered resume feedback", icon=":material/auto_awesome:", color="blue")
 st.title("Make your resume work harder")
 st.markdown(
@@ -84,6 +138,7 @@ with st.container(border=True):
     uploaded_file = st.file_uploader(
         "Choose a resume file",
         type=["pdf", "txt"],
+        max_upload_size=5,
         help="PDF and plain text files are supported.",
     )
 
@@ -113,8 +168,13 @@ with st.container(border=True):
 st.caption("Your resume is used to generate feedback for this analysis.")
 
 if submitted:
-    if not uploaded_file:
-        st.warning("Choose a PDF or TXT resume to continue.", icon=":material/upload_file:")
+    is_valid, error_message = validate_uploaded_file(uploaded_file)
+
+    if not is_valid:
+        st.warning(
+            error_message,
+            icon=":material/upload_file:",
+        )
     elif not os.getenv("GOOGLE_API_KEY"):
         st.error(
             "Gemini is not configured yet. Add GOOGLE_API_KEY to your local environment settings.",
@@ -123,16 +183,33 @@ if submitted:
     else:
         try:
             resume_text = extract_text_from_file(uploaded_file)
-            if not resume_text.strip():
-                st.error(
-                    "This file doesn't contain readable text. If it is a scanned PDF, try a text-based copy.",
-                    icon=":material/text_snippet:",
-                )
-            else:
-                with st.spinner("Reviewing your resume…"):
-                    feedback = analyze_resume(resume_text, job_role, job_description)
 
-                if isinstance(feedback, dict) and feedback:
+            with st.spinner("Reviewing your resume…"):
+                feedback = analyze_resume(
+                    resume_text,
+                    job_role,
+                    job_description,
+                )
+
+                required_fields = {
+                    "match_score",
+                    "ats_readiness_score",
+                    "summary",
+                    "matched_skills",
+                    "missing_skills",
+                    "ats_issues",
+                    "bullet_improvements",
+                    "priority_actions",
+                }
+
+                if (
+                    isinstance(feedback, dict)
+                    and required_fields.issubset(feedback.keys())
+                    and type(feedback["match_score"]) is int
+                    and 0 <= feedback["match_score"] <= 100
+                    and type(feedback["ats_readiness_score"]) is int
+                    and 0 <= feedback["ats_readiness_score"] <= 100
+                ):
                     st.success("Your review is ready", icon=":material/check_circle:")
                     st.header("Resume feedback", icon=":material/rate_review:")
                     st.caption(
@@ -188,6 +265,15 @@ if submitted:
             st.error("This PDF could not be opened. Please choose a valid PDF file.")
         except UnicodeDecodeError:
             st.error("This text file could not be read. Save it as UTF-8 and try again.")
-        except Exception as e:
-            # Avoid putting provider diagnostics or request data in the page. e:
-            st.error(f"Analysis failed: {type(e).__name__}: {e}")
+        except ValueError as error:
+            st.warning(str(error))
+
+        except PyPDF2.errors.PdfReadError:
+            st.error(
+                "This PDF could not be read. Please upload a valid PDF."
+            )
+
+        except Exception:
+            st.error(
+                "Analysis failed. Please try again later."
+            )
